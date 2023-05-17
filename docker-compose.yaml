@@ -1,20 +1,53 @@
-version: '1'
+version: '3'  # compose file syntax
 
 services:
-  test-container:  # services 이름
-    container_name: test-container
-    hostname: test-container
+  mariadb:
+    container_name: test-mariadb
+    hostname: test-mariadb
+    image: docker-test:mariadb
     build:
-      context: .
+      context: ./mariadb
+      dockerfile: DockerFile
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - ./mariadb/initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
+    networks:
+      - global
+  
+  backend-server:
+    container_name: test-backend-server
+    hostname: test-backend-server
+    image: docker-test:backend-server
+    build:
+      context: ./backend-server
       dockerfile: DockerFile
     volumes:
-      - ./src:/src  # code 싱크 맞추기(=copy) ex) {local_path}:{container_path}
-
-  postgress:
-    container_name: postgres
-    hostname: postgres
-    image: postgres:13  # docker image file 이미 있는 경우 (from hub.docker.com)
-    environment:
-      POSTGRES_PASSWORD: password
+      - ./backend-server/src:/src
     ports:
-      - 8080:8080  # conainer간의 port 연결
+      - 8000:8000
+    networks:
+      - global
+      - dev-backend
+
+  jupyter-server:
+    container_name: test-jupyter-server
+    hostname: test-jupyter-server
+    image: docker-test:jupyter-server
+    build:
+      context: ./jupyter-server
+      dockerfile: DockerFile
+    volumes:
+      - ./jupyter-server/src:/src
+    ports:
+      - 8880:8888
+    networks:
+      - global
+      - dev-backend
+
+networks:
+  global:
+  dev-backend:
+    driver: bridge
